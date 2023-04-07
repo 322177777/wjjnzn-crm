@@ -1,0 +1,80 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <link th:href="@{/jquery/bootstrap_3.3.0/css/bootstrap.min.css}" type="text/css" rel="stylesheet" />
+    <link th:href="@{/jquery/bootstrap-datetimepicker-master/css/bootstrap-datetimepicker.min.css}" type="text/css" rel="stylesheet" />
+
+    <script type="text/javascript" th:src="@{/jquery/jquery-1.11.1-min.js}"></script>
+    <script type="text/javascript" th:src="@{/jquery/bootstrap_3.3.0/js/bootstrap.min.js}"></script>
+    <script type="text/javascript" th:src="@{/jquery/bootstrap-datetimepicker-master/js/bootstrap-datetimepicker.js}"></script>
+    <script type="text/javascript" th:src="@{/jquery/bootstrap-datetimepicker-master/locale/bootstrap-datetimepicker.zh-CN.js}"></script>
+    <script type="text/javascript" th:src="@{/jquery/echars/echarts.min.js}"></script>
+    <script type="text/javascript">
+
+    $(function(){
+      //发送查询请求
+      $.ajax({
+        url:'/workbench/chart/transaction/queryCountOfTranGroup.do',
+        type:'get',
+        dataType:'json',
+        success:function (data){
+          //调用echars工具函数
+          var myChart=echarts.init(document.getElementById('main'));
+          //指定图表的配置项和数据
+          var option = {
+            title: {
+              text: '交易统计图表',
+              subtext:'交易表中各个阶段的数量'
+            },
+            tooltip: {
+              trigger: 'item',
+              formatter: '{a} <br/>{b} : {c}'
+            },
+            toolbox: {
+              feature: {
+                dataView: { readOnly: false },
+                restore: {},
+                saveAsImage: {}
+              }
+            },
+            legend: {
+              data: ['Show', 'Click', 'Visit', 'Inquiry', 'Order']
+            },
+            series: [
+              {
+                name: '数据量',
+                type: 'funnel',
+                left: '10%',
+                width: '80%',
+                label: {
+                  formatter: '{b}'
+                },
+                labelLine: {
+                  show: false
+                },
+                itemStyle: {
+                  opacity: 0.7
+                },
+                emphasis: {
+                  label: {
+                    position: 'inside',
+                    formatter: '{b}: {c}'
+                  }
+                },
+                data: data
+              }
+            ]
+          };
+          //使用刚指定的配置项和数据显示图表
+          myChart.setOption(option);
+        }
+      });
+
+    });
+
+    </script>
+</head>
+<body>
+    <div id="main" style=" width: 100%; height: 100%;"></div>
+</body>
+</html>

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <link th:href="@{/jquery/bootstrap_3.3.0/css/bootstrap.min.css}" type="text/css" rel="stylesheet" />
+    <link th:href="@{/jquery/bootstrap-datetimepicker-master/css/bootstrap-datetimepicker.min.css}" type="text/css" rel="stylesheet" />
+
+    <script type="text/javascript" th:src="@{/jquery/jquery-1.11.1-min.js}"></script>
+    <script type="text/javascript" th:src="@{/jquery/bootstrap_3.3.0/js/bootstrap.min.js}"></script>
+    <script type="text/javascript" th:src="@{/jquery/bootstrap-datetimepicker-master/js/bootstrap-datetimepicker.js}"></script>
+    <script type="text/javascript" th:src="@{/jquery/bootstrap-datetimepicker-master/locale/bootstrap-datetimepicker.zh-CN.js}"></script>
+    <script type="text/javascript" th:src="@{/jquery/bs_typeahead/bootstrap3-typeahead.min.js}"></script>
+    <script type="text/javascript">
+        $(function (){
+            //加载容器,调用工具函数
+            $(".myDate").datetimepicker({
+                language: 'zh-CN',//语言
+                format: 'yyyy-mm-dd',//格式
+                minView: 'month',//可以选择的最小视图
+                initialDate: new Date(),//初始化显示日期
+                autoclose: true,//设置选择完日期后,自动关闭日历
+                todayBtn: true,//显示今天按钮
+                clearBtn: true,//显示清空按钮
+            })
+            //给阶段搜索框加change事件
+            $("#create-stage").change(function (){
+                //收集参数
+                //$(this).find("option:selected").text();
+                var stageValue=$("#create-stage option:selected").text();
+                //表单验证
+                if(stageValue==""){
+                    //把可能性输入框清空
+                    $("#create-possibility").val("");
+                    return;
+                }
+                //发送请求
+                $.ajax({
+                    url:'/workbench/transaction/getPossibilityByStage.do',
+                    data:{
+                        stageValue:stageValue,
+                    },
+                    type:'get',
+                    dataType:'json',
+                    success:function (data){
+                        //把可能性写在输入框中
+                        $("#create-possibility").val(data);
+                    }
+                });
+            });
+            //客户名称输入框加补全事件
+            $("#create-customerName").typeahead({
+                source:function (jquery,process){//每次键盘弹起,自动提交该函数,可以发送异步请求,查询客户名称信息
+                    //jquery是输入框中的值,process是处理函数,['xxx','xxxx','xxxx',...]
+                    if(jquery==""){
+                        $("#create-customerName").val("");
+                        return;
+                    }
+                    //发送查询请求
+                    $.ajax({
+                        url: '/workbench/transaction/queryCustomerNameByName.do',
+                        data:{
+                            customerName:jquery,
+                        },
+                        type:'get',
+                        dataType: 'json',
+                        success:function (data){
+                            //插件自动处理响应信息
+                            process(data);
+                        }
+                    })
+                }
+            });
+            //给所有市场活动源的单选按钮加单击事件
+            $("#tBody").on("click","input[type='radio']",function (){
+                //获取市场活动的id和name
+                var id=this.value;
+                var activityName=$(this).attr("activityName");
+                //把市场活动的id写到隐藏域中，把name写到输入框中
+                $("#activityId").val(id);
+                $("#create-activityId").val(activityName);
+                //关闭模态窗口
+                $("#findMarketActivity").modal("hide");
+            });
+            //给所有联系人的单选按钮加单击事件
+            $("#contactsTBody").on("click","input[type='radio']",function (){
+                //获取市场活动的id和name
+                var id=this.value;
+                var contactsName=$(this).attr("contactsName");
+                //把市场活动的id写到隐藏域中，把name写到输入框中
+                $("#contactsId").val(id);
+                $("#create-contactsId").val(contactsName);
+                //关闭模态窗口
+                $("#findContacts").modal("hide");
+            });
+            //给保存按钮加单击事件
+            $("#saveCreateTranBtn").click(function (){
+                //收集参数
+                var owner           =  $("#create-owner").val();
+                var money           =  $.trim($("#create-money").val());
+                var name            =  $.trim($("#create-name").val());
+                var expectedDate    =  $("#create-expectedDate").val();
+                var customerName    =  $.trim($("#create-customerName").val());
+                var stage           =  $("#create-stage").val();
+                var type            =  $("#create-type").val();
+                var source          =  $("#create-source").val();
+                var activityId      =  $("#activityId").val();
+                var contactsId      =  $("#contactsId").val();
+                var description     =  $.trim($("#create-description").val());
+                var contactSummary  =  $.trim($("#create-contactSummary").val());
+                var nextContactTime =  $("#create-nextContactTime").val();
+                //表单验证,不为空,金额非负整数
+
+                //发送请求
+                $.ajax({
+                    url:'/workbench/transaction/saveCreateTran.do',
+                    data:{
+                        owner          :owner          ,
+                        money          :money          ,
+                        name           :name           ,
+                        expectedDate   :expectedDate   ,
+                        customerName   :customerName   ,
+                        stage          :stage          ,
+                        type           :type           ,
+                        source         :source         ,
+                        activityId     :activityId     ,
+                        contactsId     :contactsId     ,
+                        description    :description    ,
+                        contactSummary :contactSummary ,
+                        nextContactTime:nextContactTime,
+                    },
+                    type:'post',
+                    dataType:'json',
+                    success:function (data){
+                        if(data.code=="1"){
+                            window.location.href="/workbench/transaction/index.do";
+                        }else {
+                            //提示信息
+                            alert(data.message);
+                        }
+                    }
+                });
+
+            });
+
+        });
+    </script>
+</head>
+<body>
+<!-- 查找市场活动 -->
+<div class="modal fade" id="findMarketActivity" role="dialog">
+    <div class="modal-dialog" role="document" style="width: 80%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title">查找市场活动</h4>
+            </div>
+            <div class="modal-body">
+                <div class="btn-group" style="position: relative; top: 18%; left: 8px;">
+                    <form class="form-inline" role="form">
+                        <div class="form-group has-feedback">
+                            <input type="text"  class="form-control" style="width: 300px;" placeholder="请输入市场活动名称，支持模糊查询">
+                            <span class="glyphicon glyphicon-search form-control-feedback"></span>
+                        </div>
+                    </form>
+                </div>
+                <table id="activityTable3" class="table table-hover" style="width: 900px; position: relative;top: 10px;">
+                    <thead>
+                    <tr style="color: #B3B3B3;">
+                        <td></td>
+                        <td>名称</td>
+                        <td>开始日期</td>
+                        <td>结束日期</td>
+                        <td>所有者</td>
+                    </tr>
+                    </thead>
+                    <tbody id="tBody">
+                        <tr th:each="a:${activityList}">
+                            <td><input type="radio" th:activityname="${a.name}" th:value="${a.id}" /></td>
+                            <td th:text="${a.name}"></td>
+                            <td th:text="${a.startDate}"></td>
+                            <td th:text="${a.endDate}"></td>
+                            <td th:text="${a.owner}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 查找联系人 -->
+<div class="modal fade" id="findContacts" role="dialog">
+    <div class="modal-dialog" role="document" style="width: 80%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title">查找联系人</h4>
+            </div>
+            <div class="modal-body">
+                <div class="btn-group" style="position: relative; top: 18%; left: 8px;">
+                    <form class="form-inline" role="form">
+                        <div class="form-group has-feedback">
+                            <input type="text" class="form-control" style="width: 300px;" placeholder="请输入联系人名称，支持模糊查询">
+                            <span class="glyphicon glyphicon-search form-control-feedback"></span>
+                        </div>
+                    </form>
+                </div>
+                <table id="activityTable" class="table table-hover" style="width: 900px; position: relative;top: 10px;">
+                    <thead>
+                    <tr style="color: #B3B3B3;">
+                        <td></td>
+                        <td>名称</td>
+                        <td>邮箱</td>
+                        <td>手机</td>
+                    </tr>
+                    </thead>
+                    <tbody id="contactsTBody">
+                        <tr th:each="c:${contactsList}">
+                            <td><input type="radio" th:contactsName="${c.fullname}" th:value="${c.id}"/></td>
+                            <td th:text="${c.fullname}"></td>
+                            <td th:text="${c.email}"></td>
+                            <td th:text="${c.mphone}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div style="position:  relative; left: 30px;">
+    <h3>创建交易</h3>
+    <div style="position: relative; top: -40px; left: 70%;">
+        <button type="button" class="btn btn-primary" id="saveCreateTranBtn">保存</button>
+        <button type="button" class="btn btn-default" onclick="window.history.back()">取消</button>
+    </div>
+    <hr style="position: relative; top: -40px;">
+</div>
+<form class="form-horizontal" role="form" style="position: relative; top: -30px;">
+    <div class="form-group">
+        <label for="create-owner" class="col-sm-2 control-label">所有者<span style="font-size: 15px; color: red;">*</span></label>
+        <div class="col-sm-10" style="width: 300px;">
+            <select class="form-control" id="create-owner">
+                <div th:each="u:${userList}">
+                    <option th:value="${u.id}" th:text="${u.name}"></option>
+                </div>
+            </select>
+        </div>
+        <label for="create-money" class="col-sm-2 control-label">金额</label>
+        <div class="col-sm-10" style="width: 300px;">
+            <input type="text" class="form-control" id="create-money">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="create-name" class="col-sm-2 control-label">名称<span style="font-size: 15px; color: red;">*</span></label>
+        <div class="col-sm-10" style="width: 300px;">
+            <input type="text" class="form-control" id="create-name">
+        </div>
+        <label for="create-expectedDate" class="col-sm-2 control-label">预计成交日期<span style="font-size: 15px; color: red;">*</span></label>
+        <div class="col-sm-10" style="width: 300px;">
+            <input type="text" class="form-control myDate" id="create-expectedDate" readonly>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="create-customerName" class="col-sm-2 control-label">客户名称<span style="font-size: 15px; color: red;">*</span></label>
+        <div class="col-sm-10" style="width: 300px;">
+            <input type="text" class="form-control" id="create-customerName" placeholder="支持自动补全，输入客户不存在则新建">
+        </div>
+        <label for="create-stage" class="col-sm-2 control-label">阶段<span style="font-size: 15px; color: red;">*</span></label>
+        <div class="col-sm-10" style="width: 300px;">
+            <select class="form-control" id="create-stage">
+                <option></option>
+                <div th:each="s:${stageList}">
+                    <option th:value="${s.id}" th:text="${s.value}"></option>
+                </div>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="create-type" class="col-sm-2 control-label">类型</label>
+        <div class="col-sm-10" style="width: 300px;">
+            <select class="form-control" id="create-type">
+                <option></option>
+                <div th:each="t:${transactionTypeList}">
+                    <option th:value="${t.id}" th:text="${t.value}"></option>
+                </div>
+            </select>
+        </div>
+        <label for="create-possibility" class="col-sm-2 control-label">可能性</label>
+        <div class="col-sm-10" style="width: 300px;">
+            <input type="text" class="form-control" id="create-possibility" readonly>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="create-source" class="col-sm-2 control-label">来源</label>
+        <div class="col-sm-10" style="width: 300px;">
+            <select class="form-control" id="create-source">
+                <option></option>
+                <div th:each="sl:${sourceList}">
+                    <option th:value="${sl.id}" th:text="${sl.value}"></option>
+                </div>
+            </select>
+        </div>
+        <label for="create-activityId" class="col-sm-2 control-label">市场活动源&nbsp;&nbsp;<a href="javascript:void(0);" data-toggle="modal" data-target="#findMarketActivity"><span class="glyphicon glyphicon-search"></span></a></label>
+        <div class="col-sm-10" style="width: 300px;">
+            <input type="hidden" id="activityId">
+            <input type="text" id="create-activityId" class="form-control" placeholder="点击左侧搜索" readonly>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="create-contactsId" class="col-sm-2 control-label">联系人名称&nbsp;&nbsp;<a href="javascript:void(0);" data-toggle="modal" data-target="#findContacts"><span class="glyphicon glyphicon-search"></span></a></label>
+        <div class="col-sm-10" style="width: 300px;">
+            <input type="hidden" id="contactsId">
+            <input type="text" class="form-control" id="create-contactsId" placeholder="点击左侧搜索" readonly>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="create-description" class="col-sm-2 control-label">描述</label>
+        <div class="col-sm-10" style="width: 70%;">
+            <textarea class="form-control" rows="3" id="create-description"></textarea>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="create-contactSummary" class="col-sm-2 control-label">联系纪要</label>
+        <div class="col-sm-10" style="width: 70%;">
+            <textarea class="form-control" rows="3" id="create-contactSummary"></textarea>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="create-nextContactTime" class="col-sm-2 control-label">下次联系时间</label>
+        <div class="col-sm-10" style="width: 300px;">
+            <input type="text" class="form-control myDate" id="create-nextContactTime" readonly>
+        </div>
+    </div>
+
+</form>
+</body>
+</html>

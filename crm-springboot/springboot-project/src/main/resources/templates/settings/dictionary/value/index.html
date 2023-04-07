@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <link th:href="@{/jquery/bootstrap_3.3.0/css/bootstrap.min.css}" type="text/css" rel="stylesheet" />
+    <link th:href="@{/jquery/bootstrap-datetimepicker-master/css/bootstrap-datetimepicker.min.css}" type="text/css"
+          rel="stylesheet"/>
+    <script type="text/javascript" th:src="@{/jquery/jquery-1.11.1-min.js}"></script>
+    <script type="text/javascript" th:src="@{/jquery/bootstrap_3.3.0/js/bootstrap.min.js}"></script>
+    <script type="text/javascript">
+        $(function () {
+            //给单选框添加全选事件
+            $("#checkAll").click(function () {
+                $("#tBody input[type='checkbox']").prop("checked", this.checked);
+            });
+            //主体中的单选框加全选事件
+            $("#tBody").on("click", "input[type='checkbox']", function () {
+                //判断列表中的checkbox都选中,则全选
+                if ($("#tBody input[type='checkbox']").size() == $("#tBody input[type='checkbox']:checked").size()) {
+                    $("#checkAll").prop("checked", true);
+                } else {
+                    //至少有一个没选中
+                    $("#checkAll").prop("checked", false);
+                }
+            });
+            //给编辑按钮添加单击事件
+            $("#editBtn").click(function () {
+                var checkedIds = $("#tBody input[type='checkbox']:checked");
+                if (checkedIds.size() == 0) {
+                    alert("先选择要修改的字典值");
+                    return;
+                }
+                if (checkedIds.size() > 1) {
+                    alert("只能同时修改一个字典值");
+                    return;
+                }
+                var id = checkedIds.val();
+                //发送同步请求
+                window.location.href = "/settings/dictionary/value/toEditValue.do?id=" + id;
+
+            });
+            //给删除按钮加单击事件
+            $("#deleteBtn").click(function () {
+
+                var checkedIds = $("#tBody input[type='checkbox']:checked");
+                if (checkedIds.size() == 0) {
+                    alert("先选择要删除的字典值");
+                    return;
+                }
+                if (window.confirm("确定删除吗?")) {
+                    var ids = "";
+                    $.each(checkedIds, function () {
+                        ids += "id=" + this.value + "&";
+                    });
+                    //截取字符串
+                    ids = ids.substr(0, ids.length - 1);
+                    $.ajax({
+                        url: '/settings/dictionary/value/deleteDicValueByIds.do',
+                        data: ids,
+                        type: 'delete',
+                        dataType: 'json',
+                        success: function (data) {
+                            if (data.code == '1') {
+                                window.location.href="/settings/dictionary/value/valueIndex.do";
+
+                            } else {
+                                alert(data.message);
+                            }
+                        }
+                    })
+                }
+
+            });
+        })
+    </script>
+</head>
+<body>
+    <div>
+        <div style="position: relative; left: 30px; top: -10px;">
+            <div class="page-header">
+                <h3>字典值列表</h3>
+            </div>
+        </div>
+    </div>
+    <div class="btn-toolbar" role="toolbar" style="background-color: #F7F7F7; height: 50px; position: relative;left: 30px;">
+        <div class="btn-group" style="position: relative; top: 18%;">
+            <button type="button" class="btn btn-primary" onclick="window.location.href='/settings/dictionary/value/toSave.do'"><span class="glyphicon glyphicon-plus"></span> 创建</button>
+            <button type="button" class="btn btn-default" id="editBtn"><span class="glyphicon glyphicon-edit"></span> 编辑</button>
+            <button type="button" class="btn btn-danger" id="deleteBtn"><span class="glyphicon glyphicon-minus"></span> 删除</button>
+        </div>
+    </div>
+    <div style="position: relative; left: 30px; top: 20px;">
+        <table class="table table-hover">
+            <thead>
+            <tr style="color: #B3B3B3;">
+                <td><input type="checkbox"  id="checkAll"/></td>
+                <td>序号</td>
+                <td>字典值</td>
+                <td>文本</td>
+                <td>排序号</td>
+                <td>字典类型编码</td>
+            </tr>
+            </thead>
+            <tbody id="tBody">
+                <tr class="active" th:each="dicValue:${dicValueList}">
+                    <td><input type="checkbox" th:value="${dicValue.id}"/></td>
+                    <td th:text="${dicValue.id}"></td>
+                    <td th:text="${dicValue.value}"></td>
+                    <td th:text="${dicValue.text}"></td>
+                    <td th:text="${dicValue.orderNo}"></td>
+                    <td th:text="${dicValue.typeCode}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

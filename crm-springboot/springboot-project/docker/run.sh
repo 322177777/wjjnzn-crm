@@ -1,0 +1,1 @@
+cd .. && docker build ./crm-server -t crm-server:1.0
